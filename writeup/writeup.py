@@ -5,7 +5,7 @@ from models.qwen import call_qwen
 def generate_writeup(job_id, parsed, classes, path, explanations):
     output_dir = "data/outputs"
     os.makedirs(output_dir, exist_ok=True)
-    output_path = f"{output_dir}/{job_id}.md"
+    output_path = f"{output_dir}/{machine_name}_{os_type}.md"
 
     # 自动换行，最多每行80字符
     raw_text = parsed["raw"][:5000]  # 取前5000字符，避免报告太大
