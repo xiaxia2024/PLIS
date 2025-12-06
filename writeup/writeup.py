@@ -1,5 +1,6 @@
 import os
 import textwrap
+from models.qwen import call_qwen
 
 def generate_writeup(job_id, parsed, classes, path, explanations):
     output_dir = "data/outputs"
@@ -10,31 +11,26 @@ def generate_writeup(job_id, parsed, classes, path, explanations):
     raw_text = parsed["raw"][:5000]  # 取前5000字符，避免报告太大
     wrapped_text = "\n".join(textwrap.wrap(raw_text, width=80))
 
-    content = f"""
-# PLIS Auto Write-up  
-**Job ID:** {job_id}
+    # 使用 Qwen 优化 writeup
+    prompt = f"""
+根据以下信息，生成一个完整渗透测试 write-up 报告：
+日志摘要:
+{wrapped_text}
 
----
-
-## 📝 1. Parsed Log Summary
-{parsed["raw"][:500]}
-
-## 🏷 2. Detected Keywords
-{parsed["detected_keywords"]}
-
-## 🧩 3. Vulnerability Classification
+漏洞分类:
 {classes}
 
-## 🔗 4. Attack Path Summary
+攻击路径:
 {path}
 
-## 📘 5. Vulnerability Explanation
+漏洞解释:
 {"; ".join(explanations)}
 
----
-Generated automatically by **PLIS**.
+请输出 Markdown 格式。
 """
+    report_content = call_qwen(prompt)
+
     with open(output_path, "w") as f:
-        f.write(content)
+        f.write(report_content)
 
     return output_path
