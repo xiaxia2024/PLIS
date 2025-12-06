@@ -1,8 +1,10 @@
-def explain_vulns(classes):
-    explanation_map = {
-        "Privilege Escalation": "User gained root privileges via misconfig.",
-        "Service Enumeration": "Mapped open ports and services.",
-        "Exploitation": "Executed a remote code execution vector."
-    }
+from models.qwen import call_qwen
 
-    return [explanation_map.get(c, "General analysis step.") for c in classes]
+def explain_vulns(classes):
+    prompt = f"""
+我有以下漏洞分类，请生成每个漏洞的原理解读、危害和修复建议：
+漏洞列表: {classes}
+"""
+    explanation_text = call_qwen(prompt)
+    # 分割成列表，每行一个漏洞解释
+    return explanation_text.splitlines()
