@@ -1,7 +1,9 @@
 # app.py
-from fastapi import FastAPI, HTTPException
+import glob
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse, JSONResponse
-from ingest.ingest import list_inputs, read_input, parse_filename
+
+from ingest.ingest import save_log, list_inputs, read_input, parse_filename
 from parse.parser import parse_logs
 from classify.classify import classify_vulns
 from path.pathgen import generate_attack_path
