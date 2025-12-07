@@ -1,15 +1,20 @@
 import os
 import textwrap
 from models.qwen import call_qwen
+from datetime import datetime
 
-def generate_writeup(job_id, parsed, classes, path, explanations):
+def generate_writeup(machine_name: str, os_type: str, parsed: dict, classes, path, explanations):
     output_dir = "data/outputs"
     os.makedirs(output_dir, exist_ok=True)
-    output_path = f"{output_dir}/{machine_name}_{os_type}.md"
+
+    safe_machine = machine_name.replace(" ", "_")
+    safe_os = os_type.replace(" ", "_")
+    output_path = f"{output_dir}/{safe_machine}_{safe_os}.md"
 
     # 自动换行，最多每行80字符
-    raw_text = parsed["raw"][:5000]  # 取前5000字符，避免报告太大
+    raw_text = parsed.get("raw","")[:6000]  # 取前8000字符，避免报告太大
     wrapped_text = "\n".join(textwrap.wrap(raw_text, width=80))
+    
 
     # 使用 Qwen 优化 writeup
     prompt = f"""
@@ -28,7 +33,12 @@ def generate_writeup(job_id, parsed, classes, path, explanations):
 
 请输出 Markdown 格式。
 """
-    report_content = call_qwen(prompt)
+    qwen_response = call_qwen(prompt)
+
+    if isinstance(qwen_response, dict):
+        report_content = qwen_response.get("output_text", "")
+    else:
+        report_content = qwen_response
 
     with open(output_path, "w") as f:
         f.write(report_content)
