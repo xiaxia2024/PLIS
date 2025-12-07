@@ -1,52 +1,44 @@
 # app.py
-from fastapi import FastAPI, UploadFile, File
-import uuid
-import os
-
-from ingest.ingest import save_log
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse, JSONResponse
+from ingest.ingest import list_inputs, read_input, parse_filename
 from parse.parser import parse_logs
 from classify.classify import classify_vulns
 from path.pathgen import generate_attack_path
 from explain.explain import explain_vulns
 from writeup.writeup import generate_writeup
+import os
 
-app = FastAPI(title="PLIS - Penetration Learning Intelligence System")
+app = FastAPI(title="PLIS - Minimal Edition")
 
+@app.get("/inputs")
+def get_inputs():
+    files = list_inputs()
+    return {"inputs": files}
 
-# ---------- 上传日志 ----------
-@app.post("/upload")
-async def upload_log(file: UploadFile = File(...)):
-    job_id = str(uuid.uuid4())
-    file_path = save_log(job_id, file)
-    return {"job_id": job_id, "file_path": file_path}
+@app.get("/analyze/{input_filename}")
+def analyze(input_filename: str):
+    # ensure exists
+    try:
+        raw = read_input(input_filename)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Input file not found in data/inputs")
 
+    machine_name, os_type = parse_filename(input_filename)
 
-# ---------- 分析接口 ----------
-@app.post("/analyze/{job_id}")
-async def analyze(job_id: str):
-    input_path = f"data/inputs/{job_id}.log"
+    # parse
+    parsed = parse_logs(os.path.join("data/inputs", input_filename))
 
-    if not os.path.exists(input_path):
-        return {"error": "Job ID not found or file missing."}
-
-    # 1. 解析日志
-    parsed = parse_logs(input_path)
-
-    # 2. 漏洞分类
+    # classify
     classes = classify_vulns(parsed)
 
-    # 3. 生成攻击路径摘要
+    # path
     path = generate_attack_path(parsed)
 
-    # 4. 解释漏洞原理
+    # explain
     explanations = explain_vulns(classes)
 
-    # 5. 生成 write-up
-    output_path = generate_writeup(job_id, parsed, classes, path, explanations)
+    # writeup
+    output_path = generate_writeup(machine_name, os_type, parsed, classes, path, explanations)
 
-    return {
-        "job_id": job_id,
-        "message": "Analysis complete.",
-        "output": output_path
-    }
-
+    return {"status": "done", "output": output_path}
