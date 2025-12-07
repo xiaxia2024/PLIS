@@ -1,10 +1,10 @@
 # app.py
 import glob
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 
 from ingest.ingest import save_log, list_inputs, read_input, parse_filename
-from parse.parser import parse_logs
+from parse.parser import detect_os parse_logs
 from classify.classify import classify_vulns
 from path.pathgen import generate_attack_path
 from explain.explain import explain_vulns
@@ -26,10 +26,13 @@ def analyze(input_filename: str):
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Input file not found in data/inputs")
 
-    machine_name, os_type = parse_filename(input_filename)
+    machine_name, _ = parse_filename(input_filename)
 
     # parse
     parsed = parse_logs(os.path.join("data/inputs", input_filename))
+
+    # Detect OS (Linux/Windows)
+    os_type = parsed.get("os_type", "Unknown")
 
     # classify
     classes = classify_vulns(parsed)
@@ -41,6 +44,26 @@ def analyze(input_filename: str):
     explanations = explain_vulns(classes)
 
     # writeup
-    output_path = generate_writeup(machine_name, os_type, parsed, classes, path, explanations)
+    output_path = generate_writeup(
+        machine_name=machine_name,
+        os_type=os_type,
+        parsed=parsed,
+        classes=classes,
+        path=attack_path,
+        explanations=explanations
+    )
 
-    return {"status": "done", "output": output_path}
+    return {
+        "machine": machine_name,
+        "os_type": os_type,
+        "writeup_file": writeup_path
+    }
+
+# Download a generated writeup
+@app.get("/download/{writeup_filename}")
+def download(writeup_filename: str):
+    path = os.path.join("data/outputs", writeup_filename)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Writeup not found")
+    return FileResponse(path, media_type="text/markdown", filename=writeup_filename)    
+    
