@@ -2,6 +2,21 @@
 import re
 from pathlib import Path
 
+def detect_os(text: str) -> str:
+    t = text.lower()
+    linux_hits = ["linux", "ubuntu", "debian", "centos", "kali", "arch", "fedora"]
+    windows_hits = ["windows", "microsoft", "winrm", "powershell", "system32"]
+
+    for k in linux_hits:
+        if k in t:
+            return "Linux"
+
+    for k in windows_hits:
+        if k in t:
+            return "Windows"
+
+    return "Unknown"
+
 SECTION_HDR_RE = re.compile(r"^=+\s*(.+?)\s*=+$")
 
 def parse_logs(file_path: str):
