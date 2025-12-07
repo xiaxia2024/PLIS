@@ -11,7 +11,7 @@ from explain.explain import explain_vulns
 from writeup.writeup import generate_writeup
 import os
 
-app = FastAPI(title="PLIS - Minimal Edition")
+app = FastAPI(title="PLIS - Penetration Learning Intelligence System")
 
 @app.get("/inputs")
 def get_inputs():
